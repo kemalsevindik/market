@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CUSTOMER)
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  orders    Order[]
+  cartItems CartItem[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  price       Float
+  unit        String   @default("adet")
+  stock       Int      @default(0)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  quantity  Int     @default(1)
+
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  status      OrderStatus @default(PENDING)
+  total       Float
+  address     String
+  phone       String
+  note        String?
+  createdAt   DateTime    @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  quantity Int
+  price    Float
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
